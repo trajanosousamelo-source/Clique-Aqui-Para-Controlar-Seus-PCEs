@@ -174,9 +174,9 @@ body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--text);min-he
   </div>
 
   <div id="page-preview" class="page">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
-      <button onclick="closePreview()" style="padding:8px 14px;font-size:13px;font-weight:700;border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--surface2);cursor:pointer;color:var(--text);">Voltar</button>
-      <span style="font-size:12px;color:var(--text2);">Use "Compartilhar" para salvar como PDF</span>
+    <div style="display:flex;gap:8px;margin-bottom:1rem;">
+      <button onclick="closePreview()" style="padding:9px 14px;font-size:13px;font-weight:700;border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--surface2);cursor:pointer;color:var(--text);flex:1;">&#8592; Voltar</button>
+      <button onclick="window.print()" style="padding:9px 14px;font-size:13px;font-weight:700;border-radius:var(--radius);border:none;background:var(--text);cursor:pointer;color:#fff;flex:1;">&#128247; Imprimir / PDF</button>
     </div>
     <div id="preview-content"></div>
   </div>
@@ -670,40 +670,68 @@ function renderHistory() {
 
 // ---- Exports ----
 function exportPDF() { showPreviewPDF(); }
-function showPreviewPDF() {
-  var css = '<style>body{font-family:Arial,sans-serif;padding:2rem;color:#1a1a18;max-width:700px;margin:0 auto;}' +
-    'h1{font-size:20px;margin-bottom:4px;}.sub{font-size:12px;color:#888;margin-bottom:1.5rem;}' +
-    'h2{font-size:15px;margin:1.5rem 0 6px;border-bottom:1px solid #ddd;padding-bottom:4px;}' +
-    'table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:1rem;}' +
-    'th{text-align:left;font-size:11px;color:#888;text-transform:uppercase;padding:4px 8px;border-bottom:1px solid #ddd;}' +
-    'td{padding:6px 8px;border-bottom:1px solid #f0f0f0;}' +
-    '.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-weight:700;font-size:11px;}' +
-    '.I{background:#1a4d2e;color:#fff}.B{background:#2d7a4f;color:#fff}' +
-    '.R{background:#e07b00;color:#fff}.F{background:#c0392b;color:#fff}' +
-    '.N{background:#9b9b95;color:#fff}.S{background:#2d7a4f;color:#fff}.NAO{background:#c0392b;color:#fff}' +
-    '.qb{margin:1rem 0;padding-bottom:1rem;border-bottom:1px solid #eee;}' +
-    '.qn{font-size:11px;color:#888;margin-bottom:3px;}.qt{font-size:13px;font-weight:bold;margin-bottom:5px;}' +
-    '.qr{font-size:12px;color:#444;line-height:1.6;white-space:pre-wrap;}</style>';
-  var body = '<h1>ENS - PCEs</h1><p class="sub">Historico completo' + (userName ? ' &middot; ' + userName : '') + '</p>';
-  cycles.forEach(function(c, ci) {
-    var rows = c.rows || buildRowsWithNotas(Object.keys(c.records).sort(), c.records, c.notas || null);
-    body += '<h2>Ciclo ' + (ci+1) + ' — ' + fmtDate(c.start) + ' a ' + fmtDate(c.end) + '</h2>';
-    body += '<table><thead><tr><th>Item</th><th>%</th><th>Avaliacao</th></tr></thead><tbody>';
-    rows.forEach(function(r) {
-      var cls = r.nota === 'NAO' ? 'NAO' : r.nota;
-      var lbl = r.nota === 'NAO' ? 'N' : r.nota;
-      body += '<tr><td>' + r.label + '</td><td>' + r.pct + '</td><td><span class="badge ' + cls + '">' + lbl + ' — ' + r.notaDesc + '</span></td></tr>';
-    });
-    body += '</tbody></table>';
-    if (c.tema) {
-      body += '<h2 style="color:#1a4f8a;">Tema — ' + c.tema.mes + '</h2>';
-      (c.tema.perguntas || []).forEach(function(q, i) {
-        var r = ((c.tema.respostas || {})[i] || '(sem resposta)').replace(/</g, '&lt;');
-        body += '<div class="qb"><div class="qn">Pergunta ' + (i+1) + '</div><div class="qt">' + q + '</div><div class="qr">' + r + '</div></div>';
-      });
-    }
+function buildCyclePreviewHTML(c, ci) {
+  var rows = c.rows || buildRowsWithNotas(Object.keys(c.records).sort(), c.records, c.notas || null);
+  var s = '';
+
+  // Page 1: Notas
+  s += '<div style="background:#fff;border-radius:12px;padding:16px;margin-bottom:16px;">';
+  s += '<div style="font-size:10px;font-weight:700;color:#9b9b95;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Ciclo ' + (ci+1) + '</div>';
+  s += '<div style="font-size:15px;font-weight:700;margin-bottom:2px;">ENS - PCEs' + (userName ? ' — ' + userName : '') + '</div>';
+  s += '<div style="font-size:12px;color:#6b6b66;margin-bottom:14px;">' + fmtDate(c.start) + ' a ' + fmtDate(c.end) + '</div>';
+
+  // PCE section
+  s += '<div style="font-size:10px;font-weight:700;color:#9b9b95;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Pontos Concretos de Esforco</div>';
+  rows.filter(function(r) { return r.grupo === 'PCE'; }).forEach(function(r) {
+    var bg = {I:'#1a4d2e',B:'#2d7a4f',R:'#e07b00',F:'#c0392b',N:'#9b9b95',S:'#2d7a4f',NAO:'#c0392b'}[r.nota] || '#9b9b95';
+    var lbl = r.nota === 'NAO' ? 'N' : r.nota;
+    s += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid rgba(0,0,0,0.08);">';
+    s += '<span style="font-size:13px;">' + r.label + '</span>';
+    s += '<div style="display:flex;align-items:center;gap:8px;">';
+    s += '<span style="font-size:12px;color:#6b6b66;">' + r.pct + '</span>';
+    s += '<span style="background:' + bg + ';color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;">' + lbl + ' — ' + r.notaDesc + '</span>';
+    s += '</div></div>';
   });
-  showPreview(body, 'history');
+
+  // VE section
+  s += '<div style="font-size:10px;font-weight:700;color:#9b9b95;text-transform:uppercase;letter-spacing:0.08em;margin:14px 0 8px;">Vida em Equipe</div>';
+  rows.filter(function(r) { return r.grupo === 'VE'; }).forEach(function(r) {
+    var bg = {I:'#1a4d2e',B:'#2d7a4f',R:'#e07b00',F:'#c0392b',N:'#9b9b95',S:'#2d7a4f',NAO:'#c0392b'}[r.nota] || '#9b9b95';
+    var lbl = r.nota === 'NAO' ? 'N' : r.nota;
+    s += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid rgba(0,0,0,0.08);">';
+    s += '<span style="font-size:13px;">' + r.label + '</span>';
+    s += '<div style="display:flex;align-items:center;gap:8px;">';
+    s += '<span style="font-size:12px;color:#6b6b66;">' + r.pct + '</span>';
+    s += '<span style="background:' + bg + ';color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;">' + lbl + ' — ' + r.notaDesc + '</span>';
+    s += '</div></div>';
+  });
+  s += '</div>';
+
+  // Page 2: Tema
+  if (c.tema && c.tema.perguntas && c.tema.perguntas.length) {
+    s += '<div style="background:#fff;border-radius:12px;padding:16px;margin-bottom:16px;">';
+    s += '<div style="font-size:10px;font-weight:700;color:#1a4f8a;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Tema de Estudos</div>';
+    s += '<div style="font-size:15px;font-weight:700;color:#1a4f8a;margin-bottom:2px;">' + c.tema.titulo + '</div>';
+    s += '<div style="font-size:12px;color:#6b6b66;margin-bottom:14px;">' + c.tema.mes + '</div>';
+    (c.tema.perguntas || []).forEach(function(q, i) {
+      var r = ((c.tema.respostas || {})[i] || '(sem resposta)');
+      s += '<div style="margin-bottom:14px;padding-bottom:14px;border-bottom:0.5px solid rgba(0,0,0,0.08);">';
+      s += '<div style="font-size:10px;color:#9b9b95;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">Pergunta ' + (i+1) + '</div>';
+      s += '<div style="font-size:13px;font-weight:700;line-height:1.4;margin-bottom:8px;">' + q + '</div>';
+      s += '<div style="font-size:13px;color:#444;line-height:1.6;white-space:pre-wrap;background:#f5f4f0;padding:10px;border-radius:8px;">' + r + '</div>';
+      s += '</div>';
+    });
+    s += '</div>';
+  }
+  return s;
+}
+
+function showPreviewPDF() {
+  var content = '';
+  cycles.forEach(function(c, ci) {
+    content += buildCyclePreviewHTML(c, ci);
+  });
+  showPreview('<div style="background:#f5f4f0;padding:4px 0;">' + content + '</div>', 'history');
 }
 
 function exportExcel() {
