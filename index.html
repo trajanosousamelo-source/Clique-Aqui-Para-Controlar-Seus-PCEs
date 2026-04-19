@@ -382,7 +382,8 @@ function exportTemaPDF(){
     .q-resp{font-size:13px;color:#333;line-height:1.6;white-space:pre-wrap;}
   </style></head><body>
   <h1>${TEMA.titulo}</h1>
-  <p class="sub">${TEMA.mes}${userName?' &middot; '+userName:''}</p>`;
+  <p class="sub">${TEMA.mes}${userName?' &middot; '+userName:''}</p>
+  <p class="sub">Respostas de: <strong>${userName||'(não identificado)'}</strong></p>\`;
   TEMA.perguntas.forEach((q,i)=>{
     html+=`<div class="q-block">
       <div class="q-num">Pergunta ${i+1}</div>
@@ -570,7 +571,8 @@ function temaHTMLBlock(tema){
   if(!tema)return'';
   const respostas=tema.respostas||{};
   let html=`<div style="margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border2);">
-    <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Tema de Estudos — ${tema.mes}</div>`;
+    <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">Tema de Estudos — ${tema.mes}</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Respostas de: <strong>${userName||'(não identificado)'}</strong></div>`;
   (tema.perguntas||[]).forEach((q,i)=>{
     html+=`<div style="margin-bottom:10px;">
       <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Pergunta ${i+1}</div>
