@@ -383,7 +383,8 @@ function exportTemaPDF(){
   </style></head><body>
   <h1>${TEMA.titulo}</h1>
   <p class="sub">${TEMA.mes}${userName?' &middot; '+userName:''}</p>
-  <p class="sub">Respostas de: <strong>${userName||'(não identificado)'}</strong></p>\`;
+  <p class="sub">Respostas de: <strong>${userName||'(não identificado)'}</strong></p>`;
+  html += `
   TEMA.perguntas.forEach((q,i)=>{
     html+=`<div class="q-block">
       <div class="q-num">Pergunta ${i+1}</div>
