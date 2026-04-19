@@ -62,17 +62,37 @@ body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--text);min-he
 .bar-fill{height:5px;border-radius:3px;background:var(--green);transition:width 0.5s ease;}
 .stat-sub{font-size:11px;color:var(--text3);margin-top:5px;}
 .page{display:none;}.page.active{display:block;}
+
+/* Filter box */
+.filter-box{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:13px 14px;margin-bottom:1.25rem;}
+.filter-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;}
+.filter-row{display:flex;gap:8px;margin-bottom:8px;}
+.filter-field{flex:1;display:flex;flex-direction:column;gap:4px;}
+.filter-field label{font-size:11px;color:var(--text2);font-weight:700;}
+.filter-field input{width:100%;padding:7px 10px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit;outline:none;}
+.filter-field input:focus{border-color:var(--text);}
+.filter-error{font-size:12px;color:#c0392b;min-height:16px;margin-bottom:4px;}
+.filter-btn{width:100%;padding:10px;background:var(--text);border:none;border-radius:var(--radius);font-size:13px;font-weight:700;color:#fff;cursor:pointer;transition:opacity 0.15s;}
+.filter-btn:active{opacity:0.85;}
+
+/* History blocks */
 .hist-block{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:1rem;}
 .hist-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
 .hist-title{font-size:14px;font-weight:700;}
 .hist-sub{font-size:11px;color:var(--text3);margin-top:2px;}
-.export-btns{display:flex;gap:5px;flex-shrink:0;}
+.hist-actions{display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
 .exp-btn{font-size:11px;font-weight:700;padding:5px 8px;border-radius:6px;border:0.5px solid var(--border2);background:var(--surface2);cursor:pointer;color:var(--text);white-space:nowrap;}
+.del-btn{font-size:11px;font-weight:700;padding:5px 8px;border-radius:6px;border:0.5px solid rgba(192,57,43,0.3);background:#fff0ee;cursor:pointer;color:#c0392b;white-space:nowrap;}
 .hist-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;}
 .hist-table th{text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;padding:4px 6px;border-bottom:0.5px solid var(--border2);}
 .hist-table td{padding:6px 6px;border-bottom:0.5px solid var(--border);vertical-align:middle;}
 .hist-table tr:last-child td{border-bottom:none;}
 .empty{text-align:center;padding:3rem 0;font-size:14px;color:var(--text3);}
+
+/* Filtered result block */
+.filtered-block{background:var(--surface);border:1.5px solid var(--green-border);border-radius:var(--radius-lg);padding:14px;margin-bottom:1.25rem;}
+.filtered-block .hist-title{color:var(--green);}
+
 /* Modals */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:200;padding:1rem;}
 .modal{background:var(--surface);border-radius:var(--radius-lg);border:0.5px solid var(--border2);padding:1.5rem;width:100%;max-width:370px;max-height:90vh;overflow-y:auto;}
@@ -84,7 +104,7 @@ body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--text);min-he
 .modal-btns button{flex:1;padding:10px;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
 .btn-secondary{background:var(--surface2);border:0.5px solid var(--border2);color:var(--text);}
 .btn-primary{background:var(--text);border:none;color:#fff;}
-/* Review modal */
+.btn-danger{background:#c0392b;border:none;color:#fff;}
 .review-item{background:var(--surface2);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;}
 .review-item-name{font-size:13px;font-weight:700;margin-bottom:4px;}
 .review-item-pct{font-size:11px;color:var(--text3);margin-bottom:8px;}
@@ -133,6 +153,22 @@ body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--text);min-he
   </div>
 
   <div id="page-history" class="page">
+    <div class="filter-box">
+      <div class="filter-title">Relatório por período</div>
+      <div class="filter-row">
+        <div class="filter-field">
+          <label>De</label>
+          <input type="date" id="filter-start" />
+        </div>
+        <div class="filter-field">
+          <label>Até</label>
+          <input type="date" id="filter-end" />
+        </div>
+      </div>
+      <div class="filter-error" id="filter-error"></div>
+      <button class="filter-btn" onclick="applyFilter()">Gerar relatório do período</button>
+    </div>
+    <div id="filtered-result"></div>
     <div id="hist-list"></div>
   </div>
 </div>
@@ -175,6 +211,18 @@ body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--text);min-he
   </div>
 </div>
 
+<!-- Modal: confirmar exclusão -->
+<div class="overlay" id="modal-delete" style="display:none;">
+  <div class="modal">
+    <h2>Apagar ciclo?</h2>
+    <p id="delete-msg">Esta ação não pode ser desfeita.</p>
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="closeModal('modal-delete')">Cancelar</button>
+      <button class="btn-danger" onclick="confirmDelete()">Apagar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const PCE=[
   {id:'escuta',   label:'Escuta da Palavra',         freq:'diário'},
@@ -200,6 +248,8 @@ const LS={
 function todayStr(){return new Date().toISOString().slice(0,10);}
 function fmtDate(d){if(!d)return'—';return new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});}
 function weekKey(ds){const d=new Date(ds+'T12:00:00');const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+'-W'+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
+function daysBetween(a,b){return Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000);}
+function isGraded(item){return !item.tipo||item.tipo==='graded';}
 
 function calcPct(item,days,recs){
   const count=days.filter(d=>recs[d]&&recs[d][item.id]).length;
@@ -217,17 +267,15 @@ function gradeNota(pct){
 }
 function notaDesc(n){return{I:'Intenso',B:'Bom',R:'Regular',F:'Fraco',N:'Nenhum',S:'Sim',NAO:'Não'}[n]||n;}
 function freqLabel(f){return{diário:'dias',semanal:'semanas',mensal:'meses',anual:'anos'}[f];}
-function isGraded(item){return !item.tipo||item.tipo==='graded';}
 
 let userName  =LS.get('userName',null);
 let cycleStart=LS.get('cycleStart',todayStr());
 let records   =LS.get('records',{});
 let cycles    =LS.get('cycles',[]);
 let checked   =LS.get('day_'+todayStr(),{});
-
-// temp state for cycle closing
 let _pendingNewDate='';
 let _pendingNotas={};
+let _deleteIdx=-1;
 
 function renderList(items,cid){
   const el=document.getElementById(cid);el.innerHTML='';
@@ -249,11 +297,11 @@ function saveToday(){
 
 function badgeInfo(item,days,recs,overrideNota){
   const s=calcPct(item,days,recs);
-  let nota,nd;
-  if(overrideNota){nota=overrideNota;}
-  else if(isGraded(item)){nota=gradeNota(s.pct);}
-  else{nota=s.count>0?'S':'NAO';}
-  nd=notaDesc(nota);
+  let nota;
+  if(overrideNota)nota=overrideNota;
+  else if(isGraded(item))nota=gradeNota(s.pct);
+  else nota=s.count>0?'S':'NAO';
+  const nd=notaDesc(nota);
   const cls='nota-'+nota;
   return{nota,nd,cls,pct:s.pct,count:s.count,denom:s.denom,badge:`<span class="nota-badge ${cls}">${nota==='NAO'?'N':nota} — ${nd}</span>`};
 }
@@ -274,6 +322,49 @@ function renderStats(){
   document.getElementById('stats-ve').innerHTML=VE.map(cardHTML).join('');
 }
 
+/* ---- Filter by period ---- */
+function applyFilter(){
+  const fs=document.getElementById('filter-start').value;
+  const fe=document.getElementById('filter-end').value;
+  const errEl=document.getElementById('filter-error');
+  errEl.textContent='';
+
+  if(!fs||!fe){errEl.textContent='Por favor, preencha as duas datas.';return;}
+  if(fe<fs){errEl.textContent='A data final deve ser maior que a inicial.';return;}
+  const diff=daysBetween(fs,fe);
+  if(diff>45){errEl.textContent='O intervalo não pode ser superior a 45 dias.';return;}
+
+  // gather all records across cycles + current
+  const allRecs={...records};
+  cycles.forEach(c=>Object.assign(allRecs,c.records));
+
+  const days=Object.keys(allRecs).filter(d=>d>=fs&&d<=fe).sort();
+  if(!days.length){
+    document.getElementById('filtered-result').innerHTML=`<div class="filtered-block"><div class="hist-title">Período: ${fmtDate(fs)} a ${fmtDate(fe)}</div><div class="hist-sub" style="margin-top:6px;">Nenhum registro encontrado neste período.</div></div>`;
+    return;
+  }
+
+  const rows=buildRowsWithNotas(days,allRecs,null);
+  const tableHTML=makeTableHTML(rows);
+  const blockId='filtered-block-export';
+
+  document.getElementById('filtered-result').innerHTML=`
+    <div class="filtered-block" id="${blockId}">
+      <div class="hist-header">
+        <div>
+          <div class="hist-title">Período: ${fmtDate(fs)} a ${fmtDate(fe)}</div>
+          <div class="hist-sub">${days.length} dias com registro${userName?' &middot; '+userName:''}</div>
+        </div>
+        <div class="hist-actions">
+          <button class="exp-btn" onclick="exportFilterPDF('${fs}','${fe}')">PDF</button>
+          <button class="exp-btn" onclick="exportFilterExcel('${fs}','${fe}')">Excel</button>
+          <button class="exp-btn" onclick="exportPNG('${blockId}','periodo')">PNG</button>
+        </div>
+      </div>
+      ${tableHTML}
+    </div>`;
+}
+
 /* ---- Cycle closing flow ---- */
 function startCloseCycle(){
   document.getElementById('inp-newdate').value=todayStr();
@@ -285,21 +376,13 @@ function goToReview(){
   if(!nd){alert('Por favor, escolha uma data.');return;}
   _pendingNewDate=nd;
   closeModal('modal-newdate');
-
   const days=Object.keys(records).filter(d=>d>=cycleStart).sort();
   _pendingNotas={};
-  const allItems=[...PCE,...VE];
-
-  // compute suggested notas
-  allItems.forEach(item=>{
-    const b=badgeInfo(item,days,records,null);
-    _pendingNotas[item.id]=b.nota;
+  [...PCE,...VE].forEach(item=>{
+    _pendingNotas[item.id]=badgeInfo(item,days,records,null).nota;
   });
-
-  // build review UI
   const container=document.getElementById('review-body');
   container.innerHTML='';
-
   function makeGroup(items,titulo){
     const sec=document.createElement('div');
     sec.innerHTML=`<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin:12px 0 6px;">${titulo}</div>`;
@@ -320,7 +403,6 @@ function goToReview(){
     });
     container.appendChild(sec);
   }
-
   makeGroup(PCE,'Pontos concretos de esforço');
   makeGroup(VE,'Vida em equipe');
   document.getElementById('modal-review').style.display='flex';
@@ -334,32 +416,42 @@ function selectNota(itemId,nota,btnContainer){
 
 function confirmCycle(){
   const days=Object.keys(records).filter(d=>d>=cycleStart).sort();
-  // build rows with confirmed notas
   const rows=buildRowsWithNotas(days,records,_pendingNotas);
   cycles.push({start:cycleStart,end:days.length?days[days.length-1]:cycleStart,records:Object.fromEntries(days.map(d=>[d,records[d]])),notas:_pendingNotas,rows});
   LS.set('cycles',cycles);
-  cycleStart=_pendingNewDate;
-  LS.set('cycleStart',cycleStart);
+  cycleStart=_pendingNewDate;LS.set('cycleStart',cycleStart);
   records={};LS.set('records',records);
   closeModal('modal-review');
-  renderStats();
-  renderHistory();
-  goTo('history');
+  renderStats();renderHistory();goTo('history');
 }
 
+/* ---- Delete cycle ---- */
+function askDelete(idx){
+  _deleteIdx=idx;
+  const c=cycles[idx];
+  document.getElementById('delete-msg').textContent=`Apagar o Ciclo ${idx+1} (${fmtDate(c.start)} a ${fmtDate(c.end)})? Esta ação não pode ser desfeita.`;
+  document.getElementById('modal-delete').style.display='flex';
+}
+
+function confirmDelete(){
+  if(_deleteIdx<0)return;
+  cycles.splice(_deleteIdx,1);
+  LS.set('cycles',cycles);
+  _deleteIdx=-1;
+  closeModal('modal-delete');
+  renderHistory();
+}
+
+/* ---- Build rows ---- */
 function buildRowsWithNotas(days,recs,notas){
-  const allItems=[...PCE,...VE];
-  return allItems.map(item=>{
+  return[...PCE,...VE].map(item=>{
     const s=calcPct(item,days,recs);
-    const nota=notas?notas[item.id]:(isGraded(item)?gradeNota(s.pct):s.count>0?'S':'NAO');
-    const nd=notaDesc(nota);
-    const grupo=PCE.find(p=>p.id===item.id)?'PCE':'VE';
-    return{grupo,label:item.label,pct:s.pct+'%',nota,notaDesc:nd};
+    const nota=notas&&notas[item.id]?notas[item.id]:(isGraded(item)?gradeNota(s.pct):s.count>0?'S':'NAO');
+    return{grupo:PCE.find(p=>p.id===item.id)?'PCE':'VE',label:item.label,pct:s.pct+'%',nota,notaDesc:notaDesc(nota)};
   });
 }
 
-function histTableHTML(c){
-  const rows=c.rows||buildRowsWithNotas(Object.keys(c.records).sort(),c.records,c.notas||null);
+function makeTableHTML(rows){
   return`<table class="hist-table"><thead><tr><th>Item</th><th>%</th><th>Avaliação</th></tr></thead><tbody>
     ${rows.map(r=>{
       const cls=r.nota==='NAO'?'nota-NAO':'nota-'+r.nota;
@@ -369,6 +461,7 @@ function histTableHTML(c){
   </tbody></table>`;
 }
 
+/* ---- Render history ---- */
 function renderHistory(){
   const el=document.getElementById('hist-list');
   if(!cycles.length){el.innerHTML='<div class="empty">Nenhum ciclo encerrado ainda.</div>';return;}
@@ -376,41 +469,61 @@ function renderHistory(){
     const n=cycles.length-i;
     const idx=cycles.length-1-i;
     const days=Object.keys(c.records);
+    const rows=c.rows||buildRowsWithNotas(days,c.records,c.notas||null);
     return`<div class="hist-block" id="hb-${idx}">
       <div class="hist-header">
-        <div><div class="hist-title">Ciclo ${n}</div>
-        <div class="hist-sub">${fmtDate(c.start)} a ${fmtDate(c.end)} &middot; ${days.length} dias</div></div>
-        <div class="export-btns">
+        <div>
+          <div class="hist-title">Ciclo ${n}${userName?' — '+userName:''}</div>
+          <div class="hist-sub">${fmtDate(c.start)} a ${fmtDate(c.end)} &middot; ${days.length} dias</div>
+        </div>
+        <div class="hist-actions">
           <button class="exp-btn" onclick="exportPDF()">PDF</button>
           <button class="exp-btn" onclick="exportExcel()">Excel</button>
-          <button class="exp-btn" onclick="exportPNG(${idx})">PNG</button>
+          <button class="exp-btn" onclick="exportPNG('hb-${idx}','ciclo-${n}')">PNG</button>
+          <button class="del-btn" onclick="askDelete(${idx})">Apagar</button>
         </div>
       </div>
-      ${histTableHTML(c)}
+      ${makeTableHTML(rows)}
     </div>`;
   }).join('');
 }
 
+/* ---- Exports ---- */
 function exportExcel(){
-  const header=[['Ciclo','Período','Grupo','Item','%','Nota','Descrição']];
+  const header=[['Usuário','Ciclo','Período','Grupo','Item','%','Nota','Descrição']];
   const allRows=[];
   cycles.forEach((c,ci)=>{
     const rows=c.rows||buildRowsWithNotas(Object.keys(c.records).sort(),c.records,c.notas||null);
     const per=fmtDate(c.start)+' a '+fmtDate(c.end);
-    rows.forEach(r=>allRows.push([ci+1,per,r.grupo,r.label,r.pct,r.nota==='NAO'?'N':r.nota,r.notaDesc]));
+    rows.forEach(r=>allRows.push([userName||'',ci+1,per,r.grupo,r.label,r.pct,r.nota==='NAO'?'N':r.nota,r.notaDesc]));
   });
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet([...header,...allRows]);
-  ws['!cols']=[{wch:8},{wch:26},{wch:6},{wch:32},{wch:8},{wch:8},{wch:12}];
+  ws['!cols']=[{wch:16},{wch:8},{wch:26},{wch:6},{wch:32},{wch:8},{wch:8},{wch:12}];
   XLSX.utils.book_append_sheet(wb,ws,'Todos os ciclos');
-  XLSX.writeFile(wb,'ENS-PCEs-historico.xlsx');
+  XLSX.writeFile(wb,(userName?userName.replace(/\s+/g,'-')+'-':'')+'ENS-PCEs-historico.xlsx');
 }
 
-function exportPNG(idx){
-  const el=document.getElementById('hb-'+idx);
+function exportFilterExcel(fs,fe){
+  const allRecs={...records};
+  cycles.forEach(c=>Object.assign(allRecs,c.records));
+  const days=Object.keys(allRecs).filter(d=>d>=fs&&d<=fe).sort();
+  const rows=buildRowsWithNotas(days,allRecs,null);
+  const header=[['Usuário','Período','Grupo','Item','%','Nota','Descrição']];
+  const per=fmtDate(fs)+' a '+fmtDate(fe);
+  const dataRows=rows.map(r=>[userName||'',per,r.grupo,r.label,r.pct,r.nota==='NAO'?'N':r.nota,r.notaDesc]);
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet([...header,...dataRows]);
+  ws['!cols']=[{wch:16},{wch:26},{wch:6},{wch:32},{wch:8},{wch:8},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,ws,'Período');
+  XLSX.writeFile(wb,(userName?userName.replace(/\s+/g,'-')+'-':'')+'ENS-PCEs-periodo.xlsx');
+}
+
+function exportPNG(blockId,suffix){
+  const el=document.getElementById(blockId);
   html2canvas(el,{backgroundColor:'#ffffff',scale:2}).then(canvas=>{
     const a=document.createElement('a');
-    a.download='ENS-PCEs-ciclo-'+(idx+1)+'.png';
+    a.download='ENS-PCEs-'+suffix+'.png';
     a.href=canvas.toDataURL('image/png');a.click();
   });
 }
@@ -429,7 +542,7 @@ function exportPDF(){
     .N{background:#9b9b95;color:#fff}.S{background:#2d7a4f;color:#fff}
     .NAO{background:#c0392b;color:#fff}
   </style></head><body>
-  <h1>ENS - PCEs</h1><p class="sub">Histórico completo — todos os ciclos</p>`;
+  <h1>ENS - PCEs</h1><p class="sub">Histórico completo — todos os ciclos${userName?' &middot; '+userName:''}</p>`;
   cycles.forEach((c,ci)=>{
     const rows=c.rows||buildRowsWithNotas(Object.keys(c.records).sort(),c.records,c.notas||null);
     html+=`<h2>Ciclo ${ci+1} — ${fmtDate(c.start)} a ${fmtDate(c.end)}</h2>
@@ -442,6 +555,36 @@ function exportPDF(){
     html+=`</tbody></table>`;
   });
   html+=`</body></html>`;
+  const w=window.open('','_blank');w.document.write(html);w.document.close();
+  setTimeout(()=>w.print(),600);
+}
+
+function exportFilterPDF(fs,fe){
+  const allRecs={...records};
+  cycles.forEach(c=>Object.assign(allRecs,c.records));
+  const days=Object.keys(allRecs).filter(d=>d>=fs&&d<=fe).sort();
+  const rows=buildRowsWithNotas(days,allRecs,null);
+  let html=`<html><head><meta charset="UTF-8"><style>
+    body{font-family:Arial,sans-serif;padding:2rem;color:#1a1a18;max-width:700px;margin:0 auto;}
+    h1{font-size:20px;margin-bottom:4px;}.sub{font-size:12px;color:#888;margin-bottom:1.5rem;}
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    th{text-align:left;font-size:11px;color:#888;text-transform:uppercase;padding:4px 8px;border-bottom:1px solid #ddd;}
+    td{padding:6px 8px;border-bottom:1px solid #f0f0f0;}
+    .badge{display:inline-block;padding:2px 7px;border-radius:4px;font-weight:700;font-size:11px;}
+    .I{background:#1a4d2e;color:#fff}.B{background:#2d7a4f;color:#fff}
+    .R{background:#e07b00;color:#fff}.F{background:#c0392b;color:#fff}
+    .N{background:#9b9b95;color:#fff}.S{background:#2d7a4f;color:#fff}
+    .NAO{background:#c0392b;color:#fff}
+  </style></head><body>
+  <h1>ENS - PCEs</h1>
+  <p class="sub">Período: ${fmtDate(fs)} a ${fmtDate(fe)}${userName?' &middot; '+userName:''} &middot; ${days.length} dias com registro</p>
+  <table><thead><tr><th>Item</th><th>%</th><th>Avaliação</th></tr></thead><tbody>`;
+  rows.forEach(r=>{
+    const cls=r.nota==='NAO'?'NAO':r.nota;
+    const lbl=r.nota==='NAO'?'N':r.nota;
+    html+=`<tr><td>${r.label}</td><td>${r.pct}</td><td><span class="badge ${cls}">${lbl} — ${r.notaDesc}</span></td></tr>`;
+  });
+  html+=`</tbody></table></body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
   setTimeout(()=>w.print(),600);
 }
