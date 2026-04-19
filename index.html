@@ -173,6 +173,14 @@ body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--text);min-he
     </div>
   </div>
 
+  <div id="page-preview" class="page">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
+      <button onclick="closePreview()" style="padding:8px 14px;font-size:13px;font-weight:700;border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--surface2);cursor:pointer;color:var(--text);">Voltar</button>
+      <span style="font-size:12px;color:var(--text2);">Use "Compartilhar" para salvar como PDF</span>
+    </div>
+    <div id="preview-content"></div>
+  </div>
+
   <div id="page-history" class="page">
     <div class="filter-box">
       <div class="filter-title">Relatório por período</div>
@@ -397,35 +405,26 @@ function getTemaRespostas() {
   return lsGet('tema_resp_' + TEMA_MES, {});
 }
 
-function buildTemaPDFHtml(titulo, mes, perguntas, respostas, nome) {
-  var css = '<style>body{font-family:Arial,sans-serif;padding:2rem;color:#1a1a18;max-width:700px;margin:0 auto;}' +
-    'h1{font-size:20px;margin-bottom:4px;}.sub{font-size:12px;color:#888;margin-bottom:2rem;}' +
-    '.qb{margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid #eee;}' +
-    '.qn{font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px;}' +
-    '.qt{font-size:14px;font-weight:bold;margin-bottom:8px;line-height:1.4;}' +
-    '.qr{font-size:13px;color:#333;line-height:1.6;white-space:pre-wrap;}</style>';
-  var body = '<h1>' + titulo + '</h1>' +
-    '<p class="sub">' + mes + (nome ? ' &middot; ' + nome : '') + '</p>';
+function buildTemaPDFContent(titulo, mes, perguntas, respostas, nome) {
+  var s = '<div style="font-family:sans-serif;color:#1a1a18;padding:0.5rem 0;">';
+  s += '<h2 style="font-size:18px;font-weight:700;margin-bottom:4px;">' + titulo + '</h2>';
+  s += '<p style="font-size:12px;color:#888;margin-bottom:1.5rem;">' + mes + (nome ? ' &middot; ' + nome : '') + '</p>';
   perguntas.forEach(function(q, i) {
-    var r = (respostas[i] || '(sem resposta)').replace(/</g, '&lt;');
-    body += '<div class="qb"><div class="qn">Pergunta ' + (i+1) + '</div>' +
-      '<div class="qt">' + q + '</div>' +
-      '<div class="qr">' + r + '</div></div>';
+    var r = (respostas[i] || '(sem resposta)');
+    s += '<div style="margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:0.5px solid rgba(0,0,0,0.1);">';
+    s += '<div style="font-size:10px;color:#9b9b95;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">Pergunta ' + (i+1) + '</div>';
+    s += '<div style="font-size:14px;font-weight:700;margin-bottom:8px;line-height:1.4;">' + q + '</div>';
+    s += '<div style="font-size:13px;color:#444;line-height:1.6;white-space:pre-wrap;background:#f5f4f0;padding:10px;border-radius:8px;">' + r + '</div>';
+    s += '</div>';
   });
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8">' + css + '</head><body>' + body + '</body></html>';
+  s += '</div>';
+  return s;
 }
 
 function exportTemaPDF() {
   var respostas = getTemaRespostas();
-  var html = buildTemaPDFHtml(TEMA_TITULO, TEMA_MES, TEMA_PERGUNTAS, respostas, userName);
-  var blob = new Blob([html], {type: 'text/html;charset=utf-8'});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = (userName ? userName.replace(/\s+/g, '-') + '-' : '') + 'ENS-Tema.html';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(function() { URL.revokeObjectURL(a.href); }, 1000);
+  var content = buildTemaPDFContent(TEMA_TITULO, TEMA_MES, TEMA_PERGUNTAS, respostas, userName);
+  showPreview(content, 'tema');
 }
 
 function exportTemaExcel() {
@@ -670,7 +669,8 @@ function renderHistory() {
 }
 
 // ---- Exports ----
-function exportPDF() {
+function exportPDF() { showPreviewPDF(); }
+function showPreviewPDF() {
   var css = '<style>body{font-family:Arial,sans-serif;padding:2rem;color:#1a1a18;max-width:700px;margin:0 auto;}' +
     'h1{font-size:20px;margin-bottom:4px;}.sub{font-size:12px;color:#888;margin-bottom:1.5rem;}' +
     'h2{font-size:15px;margin:1.5rem 0 6px;border-bottom:1px solid #ddd;padding-bottom:4px;}' +
@@ -703,11 +703,7 @@ function exportPDF() {
       });
     }
   });
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">' + css + '</head><body>' + body + '</body></html>';
-  var w = window.open('', '_blank');
-  w.document.write(html);
-  w.document.close();
-  setTimeout(function() { w.print(); }, 600);
+  showPreview(body, 'history');
 }
 
 function exportExcel() {
@@ -764,10 +760,9 @@ function exportFilterPDF(fs, fe) {
   });
   body += '</tbody></table>';
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">' + css + '</head><body>' + body + '</body></html>';
-  var w = window.open('', '_blank');
-  w.document.write(html);
-  w.document.close();
-  setTimeout(function() { w.print(); }, 600);
+  // build inner content for preview
+  var previewHtml = body.replace(/<style>.*?<\/style>/s, '');
+  showPreview('<div style="font-family:sans-serif;">' + body + '</div>', 'history');
 }
 
 function exportFilterExcel(fs, fe) {
@@ -809,13 +804,29 @@ function saveName() {
 }
 
 function goTo(page) {
-  ['checklist','stats','tema','history'].forEach(function(p, i) {
-    document.getElementById('page-' + p).classList.toggle('active', p === page);
-    document.querySelectorAll('.tab')[i].classList.toggle('active', p === page);
+  ['checklist','stats','tema','history','preview'].forEach(function(p, i) {
+    var el = document.getElementById('page-' + p);
+    if (el) el.classList.toggle('active', p === page);
+    if (i < 4) document.querySelectorAll('.tab')[i].classList.toggle('active', p === page);
   });
   if (page === 'stats')   renderStats();
   if (page === 'tema')    renderTema();
   if (page === 'history') renderHistory();
+}
+
+function showPreview(htmlContent, fromPage) {
+  window._previewFrom = fromPage || 'history';
+  var cont = document.getElementById('preview-content');
+  cont.innerHTML = htmlContent;
+  ['checklist','stats','tema','history','preview'].forEach(function(p) {
+    var el = document.getElementById('page-' + p);
+    if (el) el.classList.toggle('active', p === 'preview');
+  });
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+}
+
+function closePreview() {
+  goTo(window._previewFrom || 'history');
 }
 
 // ---- Init ----
